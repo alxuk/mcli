@@ -1,0 +1,35 @@
+name: Build MCLI
+on:
+  push:
+    branches: [ "main" ]
+    
+permissions:
+  contents: write
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set short SHA
+      run: echo "SHORT_SHA=${GITHUB_SHA::7}" >> $GITHUB_ENV
+
+    - name: Install .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: 10.0.x
+
+    - name: Build
+      run: dotnet publish -c Release -r linux-x64 --self-contained true -p:PublishSingleFile=true -p:PublishTrimmed=true -p:TrimMode=full -p:EnableCompressionInSingleFile=true
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v2
+      with:
+        tag_name: mcli-${{ env.SHORT_SHA }}
+        name: MCLI +${{ env.SHORT_SHA }}
+        files: bin/Release/net10.0/linux-x64/publish/mcli
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
